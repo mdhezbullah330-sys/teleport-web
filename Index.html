@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>THRESHOLD — a teleportation story</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===================== 3D CANVAS ===================== -->
+  <canvas id="scene-canvas"></canvas>
+
+  <!-- ===================== FLASH LAYER (teleport effect) ===================== -->
+  <div id="flash-layer"></div>
+
+  <!-- ===================== VIGNETTE / FILM GRAIN ===================== -->
+  <div id="vignette"></div>
+  <div id="grain"></div>
+
+  <!-- ===================== SUBTITLE / ACT LABEL ===================== -->
+  <div id="act-label"><span id="act-number">ACT I</span><span id="act-title">THE ROOM</span></div>
+  <div id="subtitle"></div>
+
+  <!-- ===================== INTRO OVERLAY ===================== -->
+  <div id="intro-overlay">
+    <div class="intro-bg-glow"></div>
+    <div class="intro-content">
+      <p class="intro-eyebrow">A SHORT CINEMATIC EXPERIENCE</p>
+      <h1 class="intro-title">THRESH<span class="thin">OLD</span></h1>
+      <p class="intro-sub">Talha built a door between two rooms.<br>Tonight, he opens it.</p>
+      <button id="start-btn">
+        <span class="start-ring"></span>
+        <span class="start-label">START</span>
+      </button>
+      <p class="intro-hint">best viewed with sound off &nbsp;•&nbsp; wide screen recommended</p>
+    </div>
+  </div>
+
+  <!-- ===================== FINALE OVERLAY ===================== -->
+  <div id="finale-overlay">
+    <div class="intro-content">
+      <p class="intro-eyebrow">OBJECTIVE COMPLETE</p>
+      <h1 class="finale-title">SHE'S HOME</h1>
+      <p class="intro-sub" id="finale-sub">Two rooms. One door. No distance left between them.</p>
+      <button id="replay-btn">
+        <span class="start-ring"></span>
+        <span class="start-label">REPLAY</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================== LOADING ===================== -->
+  <div id="loader"><div class="loader-bar"><div class="loader-fill" id="loader-fill"></div></div><p id="loader-text">CALIBRATING CHAMBER…</p></div>
+
+  <!-- import map so we can load ES-module builds straight from a CDN -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/[email protected]/build/three.module.js",
+      "three/addons/": "https://unpkg.com/[email protected]/examples/jsm/",
+      "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/[email protected]/dist/tween.esm.js"
+    }
+  }
+  </script>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
