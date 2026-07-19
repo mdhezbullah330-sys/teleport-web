@@ -25,12 +25,12 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.2;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x030405);
-scene.fog = new THREE.FogExp2(0x03040a, 0.045);
+scene.fog = new THREE.FogExp2(0x03040a, 0.024);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
 const cameraTarget = new THREE.Vector3(0, 1.5, 0); // what the camera looks at, tweened alongside position
@@ -172,10 +172,10 @@ const sparkTex = sparkTexture();
    3. LIGHTING RIG (shared, softly retargeted per act)
 --------------------------------------------------------------------------- */
 
-const hemi = new THREE.HemisphereLight(0x33415a, 0x0a0806, 0.55);
+const hemi = new THREE.HemisphereLight(0x4a5d7a, 0x14100c, 0.85);
 scene.add(hemi);
 
-const keyLight = new THREE.DirectionalLight(0xbfd4e8, 0.9);
+const keyLight = new THREE.DirectionalLight(0xd7e4f0, 1.25);
 keyLight.position.set(3.5, 5.5, 2.5);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(2048, 2048);
@@ -191,6 +191,15 @@ scene.add(keyLight);
 const rimLight = new THREE.PointLight(0x66e0d9, 3.2, 14, 2.2);
 rimLight.position.set(-2.5, 2.2, -2.5);
 scene.add(rimLight);
+
+// soft overhead fill lights so each room reads clearly instead of falling into shadow
+const talhaFill = new THREE.PointLight(0x5c7a92, 1.1, 12, 2);
+talhaFill.position.set(-14, 3.4, 1.5);
+scene.add(talhaFill);
+
+const tahminaFill = new THREE.PointLight(0xc98aa8, 1.1, 12, 2);
+tahminaFill.position.set(14, 3.4, 1.5);
+scene.add(tahminaFill);
 
 /* ---------------------------------------------------------------------------
    4. ROOM BUILDER  (shared shell, themed materials)
@@ -621,19 +630,42 @@ const loaderText = document.getElementById('loader-text');
 
 let activation = { talha: 0, tahmina: 0 };
 
+// room origins in world space — every camera / character coordinate below is
+// expressed as ROOM_ORIGIN + local offset, so the camera always actually
+// ends up inside the room it's supposed to be showing.
+const TA = talhaRoom.position.clone();   // (-14, 0, 0)
+const T = tahminaRoom.position.clone();  // (14, 0, 0)
+
+/* "materialize" pop: a character scales up from nothing in sync with a light burst,
+   used for the Act III return so both figures visibly arrive together. */
+function materialize(character, { delay = 0, duration = 900 } = {}) {
+  character.visible = true;
+  character.scale.set(0.001, 0.001, 0.001);
+  return new Promise((resolve) => {
+    new TWEEN.Tween(character.scale)
+      .to({ x: 1, y: 1, z: 1 }, duration)
+      .delay(delay)
+      .easing(TWEEN.Easing.Back.Out)
+      .onComplete(resolve)
+      .start();
+  });
+}
+
 async function playSequence() {
   introOverlay.classList.add('hidden');
   await wait(600);
 
-  /* ---------------- ACT I : TALHA'S ROOM ---------------- */
+  /* ================= ACT I : TALHA'S ROOM ================= */
   setAct('ACT I', "TALHA'S ROOM");
-  camera.position.set(0.2, 1.55, -1.1);
-  cameraTarget.set(0.2, 1.4, -3);
+
+  // wide establishing shot — see the whole room before we get close to anything
+  camera.position.copy(TA).add(new THREE.Vector3(3.6, 2.7, 4.9));
+  cameraTarget.copy(TA).add(new THREE.Vector3(0, 1.3, -0.8));
   await showSubtitle('Talha has spent three years building a door that shouldn\u2019t exist.', 3400);
 
   await tweenCamera({
-    pos: new THREE.Vector3(1.9, 1.7, 0.6),
-    look: new THREE.Vector3(0.2, 1.1, 1.6),
+    pos: TA.clone().add(new THREE.Vector3(1.9, 1.7, 0.6)),
+    look: TA.clone().add(new THREE.Vector3(0.2, 1.1, 1.6)),
     duration: 2600
   });
   await showSubtitle('Tonight, for the first time, he\u2019s certain it works.', 2800);
@@ -641,8 +673,8 @@ async function playSequence() {
   // guide camera toward the machine, following behind Talha
   await Promise.all([
     tweenCamera({
-      pos: new THREE.Vector3(0.5, 1.9, 3.4),
-      look: new THREE.Vector3(0.2, 1.0, 1.6),
+      pos: TA.clone().add(new THREE.Vector3(0.5, 1.9, 3.4)),
+      look: TA.clone().add(new THREE.Vector3(0.2, 1.0, 1.6)),
       duration: 2600
     }),
     (async () => {
@@ -651,8 +683,8 @@ async function playSequence() {
   ]);
 
   await tweenCamera({
-    pos: new THREE.Vector3(0.2, 1.75, 2.0),
-    look: new THREE.Vector3(0.2, 1.3, 1.6),
+    pos: TA.clone().add(new THREE.Vector3(0.2, 1.75, 2.0)),
+    look: TA.clone().add(new THREE.Vector3(0.2, 1.3, 1.6)),
     duration: 1500
   });
   await showSubtitle('He steps inside the chamber.', 1800);
@@ -666,18 +698,16 @@ async function playSequence() {
   await rampActivation('talha', 0, 200);
   talha.visible = false;
 
-  /* ---------------- ACT II : TAHMINA'S ROOM ---------------- */
+  /* ================= ACT II : TAHMINA'S ROOM ================= */
   setAct('ACT II', "TAHMINA'S ROOM");
-  camera.position.set(-0.6 + 14, 1.85, 3.6);
-  cameraTarget.set(-0.6 + 14, 1.2, 1.4);
-  // note: room is offset +14 on X, so re-express positions relative to that origin
-  const T = new THREE.Vector3(14, 0, 0);
-  camera.position.copy(T).add(new THREE.Vector3(-0.6, 1.85, 3.6));
-  cameraTarget.copy(T).add(new THREE.Vector3(-0.6, 1.15, 1.4));
+
+  // wide establishing shot of Tahmina's room
+  camera.position.copy(T).add(new THREE.Vector3(-3.4, 2.7, 4.9));
+  cameraTarget.copy(T).add(new THREE.Vector3(0.3, 1.3, -0.8));
   await flash(1, 160);
   await rampActivation('tahmina', 1, 10);
   await rampActivation('tahmina', 0, 900);
-  await showSubtitle('The chamber on the other side hums to life.', 2600);
+  await showSubtitle('The chamber on the other side hums to life.', 2800);
 
   await tweenCamera({
     pos: T.clone().add(new THREE.Vector3(-2.0, 1.7, -1.6)),
@@ -721,27 +751,44 @@ async function playSequence() {
   await rampActivation('tahmina', 0, 200);
   tahmina.visible = false;
 
-  /* ---------------- ACT III : THE RETURN ---------------- */
+  /* ================= ACT III : THE RETURN ================= */
   setAct('ACT III', 'THE RETURN');
-  camera.position.set(0.2, 1.85, 3.6);
-  cameraTarget.set(0.2, 1.15, 1.4);
+
+  // frame the machine itself, close and centered, so the arrival reads clearly
+  camera.position.copy(TA).add(new THREE.Vector3(0.2, 1.55, 3.1));
+  cameraTarget.copy(TA).add(new THREE.Vector3(0.2, 1.15, 1.6));
   await flash(1, 160);
-  talha.visible = true;
-  await rampActivation('talha', 1, 10);
+
+  // both characters materialize together, inside the chamber, at the same moment
+  talha.position.set(0.2, 0, 1.5);
+  talha.rotation.y = Math.PI * 0.05;
+  tahmina.position.set(-0.35, 0, 1.7);
+  tahmina.rotation.y = -Math.PI * 0.15;
+
+  await rampActivation('talha', 1, 500);
+  await Promise.all([
+    materialize(talha, { duration: 1000 }),
+    materialize(tahmina, { delay: 120, duration: 1000 })
+  ]);
+  cameraShake(0.05, 500);
   await rampActivation('talha', 0, 900);
+  await showSubtitle('Together, the chamber lets them go.', 2400);
 
-  tahmina.visible = true;
-  tahmina.position.set(0.75, 0, 1.4);
-  tahmina.rotation.y = Math.PI * 0.15;
-  talha.position.set(-0.35, 0, 1.4);
-  talha.rotation.y = -Math.PI * 0.1;
-
+  // pull back to a wide reveal so the room, the machine, and both figures read at once
+  await tweenCamera({
+    pos: TA.clone().add(new THREE.Vector3(3.2, 2.4, 4.6)),
+    look: TA.clone().add(new THREE.Vector3(0, 1.3, 0.6)),
+    duration: 2800
+  });
   await showSubtitle('Two rooms. One door. She\u2019s standing in his, now.', 3000);
 
+  // settle into the reunion close-up
+  talha.position.set(-0.35, 0, 1.2);
+  tahmina.position.set(0.55, 0, 1.2);
   await tweenCamera({
-    pos: new THREE.Vector3(0.2, 1.55, 2.9),
-    look: new THREE.Vector3(0.2, 1.2, 1.4),
-    duration: 2600
+    pos: TA.clone().add(new THREE.Vector3(0.1, 1.55, 2.9)),
+    look: TA.clone().add(new THREE.Vector3(0.1, 1.2, 1.2)),
+    duration: 2400
   });
   await showSubtitle('Talha finally lets himself breathe.', 2600);
 
@@ -804,12 +851,14 @@ function animate() {
     bulb.material.emissiveIntensity = 1.8 + Math.sin(t * 2 + i * 0.6) * 0.5;
   });
 
-  // idle ambient drift before the sequence starts
+  // idle ambient drift before the sequence starts — a slow drift across
+  // Talha's room so the room itself is the first thing the person sees
   if (!introOverlay.classList.contains('hidden')) {
     idleT += dt;
-    camera.position.x = 0.2 + Math.sin(idleT * 0.15) * 0.5;
-    camera.position.y = 1.55 + Math.sin(idleT * 0.2) * 0.06;
-    cameraTarget.set(0.2, 1.4, -3);
+    camera.position.x = TA.x + 2.8 + Math.sin(idleT * 0.1) * 1.2;
+    camera.position.y = TA.y + 2.1 + Math.sin(idleT * 0.15) * 0.15;
+    camera.position.z = TA.z + 4.2;
+    cameraTarget.set(TA.x, TA.y + 1.3, TA.z - 0.5);
   }
 
   // camera shake overlay
